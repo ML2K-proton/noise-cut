@@ -193,6 +193,7 @@ class AudioEngine:
         self._out_rate = SAMPLE_RATE
         self._running = False
         self._level = 0.0
+        self._input_level = 0.0
         self._speech = 0.0
         self.muted = False
         self.error: str | None = None
@@ -204,6 +205,10 @@ class AudioEngine:
     @property
     def level(self) -> float:
         return self._level
+
+    @property
+    def input_level(self) -> float:
+        return self._input_level
 
     @property
     def speech_prob(self) -> float:
@@ -300,6 +305,7 @@ class AudioEngine:
                 mono = self._in_resampler.resample_chunk(mono)
             if mono.size == 0:
                 return
+            self._input_level = float(np.sqrt(np.mean(mono * mono)))
             if self._pending.size:
                 mono = np.concatenate((self._pending, mono))
             n_full = (mono.size // BLOCK) * BLOCK
@@ -419,6 +425,7 @@ class AudioEngine:
         self._input_stream = None
         self._output_stream = None
         self._level = 0.0
+        self._input_level = 0.0
         self._speech = 0.0
         self._ring.clear()
         self._stop_dfn3_worker()

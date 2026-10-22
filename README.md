@@ -4,10 +4,11 @@
 
 ## Tính năng
 
-- Lọc ồn realtime bằng **RNNoise** (mặc định, nhẹ, có high-pass 80 Hz) hoặc **DeepFilterNet3** (tùy chọn, lọc mạnh hơn) + slider độ lọc 0–100%
+- Lọc ồn realtime bằng **RNNoise** (mặc định, nhẹ, có high-pass 80 Hz) hoặc **DeepFilterNet3** (tùy chọn, lọc mạnh hơn) + slider mức khử có nhãn **Nhẹ ↔ Mạnh**
+- Giao diện ưu tiên trạng thái: card **ĐANG KHỬ ỒN / KHỬ ỒN ĐANG TẮT**, nút bật/tắt lớn, đồng hồ tín hiệu **Vào/Ra** realtime; các thiết lập phụ nằm trong **Cài đặt nâng cao**
 - Mic ảo **VB-CABLE** tích hợp: bấm **"Cài mic ảo"** trong app là xong (tự tải kèm sẵn, mở UAC, không cần lên web)
 - **Thanh nhỏ luôn nổi** (always-on-top): kéo được, luôn hiển thị kể cả khi cửa sổ chính ẩn xuống tray; có nút giữ để tắt tiếng và nút hướng dẫn
-- **Tắt tiếng tức thì** (khi ho/hắt xì): giữ **Ctrl+Shift+?** (phím `/`) — thả ra để nói tiếp; hoặc giữ nút **GIỮ ĐỂ TẮT TIẾNG** trên app/thanh nhỏ; có chế độ bấm 1 lần để bật/tắt
+- **Tắt tiếng tức thì** (khi ho/hắt xì): giữ **Ctrl+Shift+?** (phím `/`) — thả ra để nói tiếp; hoặc giữ nút **GIỮ ĐỂ TẮT TIẾNG** trong **Cài đặt nâng cao**/thanh nhỏ; có chế độ bấm 1 lần để bật/tắt
 - Tự bật lọc khi mở app, thu nhỏ xuống **khay hệ thống**, bật/tắt nhanh từ menu tray
 - Tùy chọn **tự chạy cùng Windows**, nhớ thiết bị + độ lọc + bộ lọc
 - Nhẹ: RAM ~55 MB (RNNoise) / ~80 MB (DFN3); CPU RNNoise ~1% tổng; DFN3 ~0.18 RTF; trễ xử lý nội bộ ~60 ms (RNNoise) / ~70 ms (DFN3)
@@ -17,7 +18,7 @@
 1. Chạy `dist-folder\noise-cut\noise-cut.exe` (khởi động ~1s, khuyên dùng hằng ngày; DFN3 load model thêm ~0.2s)
    hoặc `dist\noise-cut.exe` (1 file duy nhất ~59 MB, khởi động ~3–4s).
 2. Bấm **Cài mic ảo (VB-Cable)** → bấm **Yes** ở hộp thoại UAC → **khởi động lại Windows**.
-3. Mở app: tự chọn `CABLE Input` và tự bật lọc. Chọn bộ lọc ở ô **Bộ lọc** nếu muốn dùng DFN3.
+3. Mở app: tự chọn `CABLE Input` và tự bật lọc. Mở **Cài đặt nâng cao** để chọn bộ lọc nếu muốn dùng DFN3.
 4. Trong Meet/Zoom/Teams chọn micro là **CABLE Output (VB-Audio Virtual Cable)** và **tắt khử ồn có sẵn** của chúng (tránh lọc 2 lần méo tiếng).
 5. Bấm **X** để thu nhỏ xuống khay (bộ lọc vẫn chạy); thoát hẳn bằng menu chuột phải ở khay.
 
@@ -47,8 +48,8 @@ Cả RNNoise và DFN3 đều không đảm bảo chặn ho/hét (DFN3 có thể 
 - Phím tắt toàn cục duy nhất: **Ctrl+Shift+?** (giữ `Ctrl` + `Shift` + phím `/`, tức phím `?`; bấm được cả khi app ẩn dưới tray). Không chặn phím, nên tổ hợp vẫn được gửi tới app đang focus.
   - Mặc định: **giữ** để tắt tiếng, thả ra để mở lại.
   - Tick **"Bấm 1 lần để bật/tắt"** để chuyển sang chế độ toggle.
-- Nút **GIỮ ĐỂ TẮT TIẾNG** trên app và trên **thanh nhỏ luôn nổi**: cùng cơ chế giữ-thả.
-- Banner đỏ **ĐANG TẮT TIẾNG** + menu tray "Tắt tiếng" hiển thị trạng thái.
+- Nút **GIỮ ĐỂ TẮT TIẾNG** trong **Cài đặt nâng cao** và trên **thanh nhỏ luôn nổi**: cùng cơ chế giữ-thả.
+- Trạng thái đỏ **ĐANG TẮT TIẾNG** trên cửa sổ chính + menu tray "Tắt tiếng" hiển thị trạng thái.
 - Thanh nhỏ luôn nổi có thể kéo bằng chuột; vị trí được nhớ. Ẩn/hiện bằng menu tray **"Hiện/Ẩn thanh nhỏ"** (nên ẩn khi chia sẻ toàn màn hình, vì cửa sổ nổi sẽ bị lộ).
 
 ## Cấu trúc
@@ -58,6 +59,7 @@ app.py                 :: điểm vào
 noisecut/
   gui.py               :: giao diện tkinter + tray
   mini.py              :: thanh nhỏ luôn nổi, kéo được, nút tắt tiếng
+  toast.py             :: thông báo nhỏ khi thu nhỏ xuống tray
   hotkey.py            :: phím tắt toàn cục Ctrl+Shift+/? (pynput)
   engine.py            :: thu mic → xử lý → ghi ra mic ảo (ring buffer, resample, DFN3 worker)
   denoiser.py          :: high-pass NumPy + RNNoise + dry/wet mix

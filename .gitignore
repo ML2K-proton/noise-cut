@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+dist-folder/
+release/
+bench/out/
+bench/smoke/
+bench/smoke-spectrograms/
+*.spec

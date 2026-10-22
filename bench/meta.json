@@ -1,0 +1,35 @@
+{
+  "sample_rate": 48000,
+  "duration": 5.0,
+  "snrs": [
+    20,
+    10,
+    5,
+    0,
+    -5
+  ],
+  "event_levels": [
+    0,
+    5,
+    10
+  ],
+  "processors": [
+    "noisy",
+    "rnnoise",
+    "dfn3",
+    "dfn3_hp"
+  ],
+  "smoke": false,
+  "values": {
+    "dfn3_mean_drop_5": 7.434887042010137,
+    "rnnoise_mean_drop_5": 0.5630475179584145,
+    "dfn3_mean_si_sdr_5": 12.41162729492462,
+    "rnnoise_mean_si_sdr_5": 4.102711387237362,
+    "dfn3_mean_stoi_5": 0.8608928327124018,
+    "rnnoise_mean_stoi_5": 0.8421694097347622,
+    "dfn3_mean_event_peak_drop": 24.53679830148656,
+    "rnnoise_mean_event_peak_drop": 19.370096595882227,
+    "dfn3_p99_ms": 3.123038,
+    "dfn3_rtf": 0.17685874000000001
+  }
+}

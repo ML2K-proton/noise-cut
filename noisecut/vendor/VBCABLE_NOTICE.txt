@@ -1,0 +1,20 @@
+VB-CABLE bundled with noise-cut
+================================
+
+This folder contains the unmodified official package:
+
+    VBCABLE_Driver_Pack45.zip
+    SHA-256: B950E39F01AF1D04EA623C8F6D8EB9B6EA5C477C637295FABF20631C85116BFB
+    Source:  https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip
+
+Attribution (required by VB-Audio):
+
+    VB-CABLE origin: www.vb-cable.com
+    VB-CABLE is a donationware, all participations are welcome.
+
+VB-CABLE is Copyright (c) Vincent Burel / VB-Audio. All rights reserved.
+It is distributed here as-is, without modification, under the terms described at:
+    https://vb-audio.com/Services/licensing.htm
+
+Only the base VB-CABLE package is bundled. The A+B and C+D variants must not be
+bundled with other products and are not included here.

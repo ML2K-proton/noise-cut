@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset='utf-8'>
+<title>Noise Suppression Benchmark</title>
+<style>body{font-family:Segoe UI,Arial,sans-serif;margin:32px;background:#111;color:#eee}table{border-collapse:collapse;margin:12px 0}td,th{border:1px solid #444;padding:6px 10px;text-align:right}th{background:#222}audio{height:30px;width:230px}h1,h2{color:#8fd}h3{margin-top:28px}a{color:#8cf}.note{color:#bbb}</style></head><body>
+<h1>Noise Suppression Benchmark</h1>
+<p class='note'>Synthetic English TTS + deterministic synthetic noise. Use headphones and compare the same sentence across processors.</p>
+<h2>Headline</h2><ul>
+<li>DFN3 attenuation at +5 dB: 7.43 dB (RNNoise 0.56 dB)</li>
+<li>DFN3 SI-SDR at +5 dB: 12.41 dB (RNNoise 4.10 dB)</li>
+<li>DFN3 STOI at +5 dB: 0.861 (RNNoise 0.842)</li>
+<li>DFN3 p99: 3.123 ms/frame; RTF 0.177</li>
+</ul>
+<h3>fan_snr_plus5</h3><table><tr><th>Processor</th><th>Noise drop dB</th><th>SI-SDR</th><th>STOI</th><th>Audio</th></tr>
+<tr><td>Noisy input</td><td>0.00</td><td>4.97</td><td>0.736</td><td><audio controls src='out/mix/fan_snr_plus5.wav'></audio></td></tr>
+<tr><td>RNNoise</td><td>0.86</td><td>4.57</td><td>0.782</td><td><audio controls src='out/processed/fan_snr_plus5_rnnoise.wav'></audio></td></tr>
+<tr><td>DFN3</td><td>6.51</td><td>11.38</td><td>0.777</td><td><audio controls src='out/processed/fan_snr_plus5_dfn3.wav'></audio></td></tr>
+<tr><td>DFN3 + 80 Hz HP</td><td>4.25</td><td>13.46</td><td>0.965</td><td><audio controls src='out/processed/fan_snr_plus5_dfn3_hp.wav'></audio></td></tr>
+</table>
+<h3>keyboard_snr_plus5</h3><table><tr><th>Processor</th><th>Noise drop dB</th><th>SI-SDR</th><th>STOI</th><th>Audio</th></tr>
+<tr><td>Noisy input</td><td>0.00</td><td>4.99</td><td>0.838</td><td><audio controls src='out/mix/keyboard_snr_plus5.wav'></audio></td></tr>
+<tr><td>RNNoise</td><td>2.05</td><td>6.11</td><td>0.931</td><td><audio controls src='out/processed/keyboard_snr_plus5_rnnoise.wav'></audio></td></tr>
+<tr><td>DFN3</td><td>9.03</td><td>14.07</td><td>0.921</td><td><audio controls src='out/processed/keyboard_snr_plus5_dfn3.wav'></audio></td></tr>
+<tr><td>DFN3 + 80 Hz HP</td><td>9.50</td><td>15.08</td><td>0.953</td><td><audio controls src='out/processed/keyboard_snr_plus5_dfn3_hp.wav'></audio></td></tr>
+</table>
+<h3>babble_snr_plus5</h3><table><tr><th>Processor</th><th>Noise drop dB</th><th>SI-SDR</th><th>STOI</th><th>Audio</th></tr>
+<tr><td>Noisy input</td><td>0.00</td><td>4.97</td><td>0.832</td><td><audio controls src='out/mix/babble_snr_plus5.wav'></audio></td></tr>
+<tr><td>RNNoise</td><td>-2.18</td><td>-0.18</td><td>0.687</td><td><audio controls src='out/processed/babble_snr_plus5_rnnoise.wav'></audio></td></tr>
+<tr><td>DFN3</td><td>1.88</td><td>6.35</td><td>0.827</td><td><audio controls src='out/processed/babble_snr_plus5_dfn3.wav'></audio></td></tr>
+<tr><td>DFN3 + 80 Hz HP</td><td>0.10</td><td>6.76</td><td>0.895</td><td><audio controls src='out/processed/babble_snr_plus5_dfn3_hp.wav'></audio></td></tr>
+</table>
+<h3>construction_snr_plus5</h3><table><tr><th>Processor</th><th>Noise drop dB</th><th>SI-SDR</th><th>STOI</th><th>Audio</th></tr>
+<tr><td>Noisy input</td><td>0.00</td><td>5.10</td><td>0.607</td><td><audio controls src='out/mix/construction_snr_plus5.wav'></audio></td></tr>
+<tr><td>RNNoise</td><td>0.71</td><td>4.44</td><td>0.657</td><td><audio controls src='out/processed/construction_snr_plus5_rnnoise.wav'></audio></td></tr>
+<tr><td>DFN3</td><td>5.47</td><td>10.22</td><td>0.657</td><td><audio controls src='out/processed/construction_snr_plus5_dfn3.wav'></audio></td></tr>
+<tr><td>DFN3 + 80 Hz HP</td><td>3.89</td><td>11.77</td><td>0.945</td><td><audio controls src='out/processed/construction_snr_plus5_dfn3_hp.wav'></audio></td></tr>
+</table>
+<h2>Continuous noise at +5 dB</h2>
+| Noise | RN drop | RN SI-SDR | RN STOI | DFN3 drop | DFN3 SI-SDR | DFN3 STOI | DFN3+HP drop | DFN3+HP STOI |<br>|---|---:|---:|---:|---:|---:|---:|---:|---:|<br>| fan | 0.86 | 4.57 | 0.78 | 6.51 | 11.38 | 0.78 | 4.25 | 0.97 |<br>| keyboard | 2.05 | 6.11 | 0.93 | 9.03 | 14.07 | 0.92 | 9.50 | 0.95 |<br>| traffic | 1.37 | 5.24 | 0.68 | 6.68 | 11.55 | 0.68 | 3.21 | 0.98 |<br>| rain | 1.56 | 5.49 | 0.97 | 11.76 | 17.13 | 0.97 | 12.49 | 0.97 |<br>| wind | -0.23 | 3.04 | 0.93 | 4.15 | 8.99 | 0.94 | 5.67 | 0.95 |<br>| babble | -2.18 | -0.18 | 0.69 | 1.88 | 6.35 | 0.83 | 0.10 | 0.90 |<br>| dog | 0.93 | 4.67 | 0.79 | 8.53 | 13.55 | 0.79 | 7.70 | 0.97 |<br>| baby | 0.53 | 4.15 | 0.92 | 6.62 | 11.32 | 0.94 | 6.16 | 0.98 |<br>| construction | 0.71 | 4.44 | 0.66 | 5.47 | 10.22 | 0.66 | 3.89 | 0.94 |<br>| notification | 0.99 | 4.76 | 0.98 | 14.17 | 19.56 | 0.99 | 12.07 | 0.99 |<br>| music | -0.39 | 2.84 | 0.94 | 6.97 | 12.39 | 0.96 | 6.83 | 0.97 |
+<h2>Events</h2>
+| Event | Level dB | RN peak drop | DFN3 peak drop | DFN3+HP peak drop | DFN3 RMS drop |<br>|---|---:|---:|---:|---:|---:|<br>| cough | 0 | 19.37 | 32.95 | 33.27 | 35.81 |<br>| cough | 10 | 19.91 | 31.91 | 31.87 | 34.85 |<br>| cough | 5 | 19.90 | 31.94 | 31.90 | 34.87 |<br>| sneeze | 0 | 18.98 | 16.74 | 16.29 | 25.59 |<br>| sneeze | 10 | 19.04 | 16.86 | 16.41 | 25.69 |<br>| sneeze | 5 | 19.03 | 16.82 | 16.37 | 25.65 |
+<h2>Realtime</h2>
+| Processor | Load ms | p50 ms | p95 ms | p99 ms | Max ms | RTF |<br>|---|---:|---:|---:|---:|---:|---:|<br>| RNNoise | 0.1 | 0.971 | 1.708 | 2.081 | 2.943 | 0.103 |<br>| DFN3 | 144.3 | 1.707 | 2.721 | 3.123 | 3.894 | 0.177 |<br>| DFN3 + 80 Hz HP | 152.4 | 1.839 | 2.921 | 3.425 | 4.356 | 0.189 |
+<h2>Recommendation</h2><ul><li>Use DFN3 as an opt-in high-quality mode; keep RNNoise as the default and fallback.</li><li>Do not add the 80 Hz high-pass to the DFN3 path; raw DFN3 was more consistent.</li><li>Expect babble, wind, and construction to leak; DFN3 is not a BVC/AEC replacement.</li><li>Runtime package is about 25 MB installed; model load is about 150 ms.</li></ul>
+</body></html>

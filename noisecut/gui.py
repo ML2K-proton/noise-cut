@@ -57,9 +57,9 @@ HELP_TEXT = (
     "4. Trong Meet/Zoom/Teams chọn micro là\n"
     "   'CABLE Output (VB-Audio Virtual Cable)'.\n\n"
     "5. Tắt khử ồn có sẵn của Meet/Zoom/Teams để tránh lọc 2 lần.\n\n"
-    "6. Khi ho/hắt xì: GIỮ Ctrl+Shift+? (phím /) để tắt tiếng,\n"
-    "   thả ra để nói tiếp. Cũng có thể giữ nút 'GIỮ ĐỂ TẮT TIẾNG'\n"
-    "   trên cửa sổ chính hoặc thanh nhỏ luôn nổi.\n\n"
+    "6. Khi ho/hắt xì: BẤM Ctrl+Shift+? (phím /) để bật/tắt tiếng.\n"
+    "   Cũng có thể bấm nút 'BẤM ĐỂ TẮT TIẾNG' trên cửa sổ chính\n"
+    "   hoặc thanh nhỏ luôn nổi.\n\n"
     "Thanh nhỏ luôn nổi có thể kéo bằng chuột; ẩn/hiện trong menu tray.\n"
     "Bấm X để thu nhỏ xuống khay hệ thống — thanh nhỏ và bộ lọc vẫn chạy.\n"
     "Thoát hẳn bằng menu chuột phải trên biểu tượng khay."
@@ -105,7 +105,7 @@ class App:
         self._mini_visible = bool(self.config.get("mini_visible", True))
         self._dfn3_available = dfn3.available()
         self._hotkey = hotkey.MuteHotkey(self._on_hotkey_mute)
-        self._advanced_open = False
+        self._aec_busy = False
         self._ui_ready = False
         self._disp_in = 0.0
         self._disp_out = 0.0
@@ -131,6 +131,8 @@ class App:
         self._update_mute_ui()
         self._ui_ready = True
         self._fit_window()
+        self.root.after_idle(self._fit_window)
+        self.root.after(100, self._fit_window)
         self._setup_tray()
         self._setup_hotkey()
         self._setup_mini()
@@ -280,14 +282,9 @@ class App:
         ttk.Label(mix_ends, text="Mạnh", style="Hint.TLabel").pack(side="right")
         self.mix_value_label.configure(text=self._mix_caption(self.mix_var.get()))
 
-        self.advanced_btn = ui.RoundButton(
-            self.root, text="Cài đặt nâng cao   ▼", kind="ghost", height=30,
-            padx=10, bg=BG, anchor="w", command=self._toggle_advanced,
-        )
-        self.advanced_btn.pack(fill="x", padx=PAD, pady=(12, 0))
-
-        self.advanced = ttk.Frame(self.root)
-        self._build_advanced(self.advanced)
+        self.options = ttk.Frame(self.root)
+        self.options.pack(fill="x", padx=PAD, pady=(14, 0))
+        self._build_options(self.options)
 
         self.footer_sep = tk.Frame(self.root, bg=BORDER, height=1)
         self.footer_sep.pack(fill="x", padx=PAD, pady=(12, 0))
@@ -299,9 +296,11 @@ class App:
                                 wraplength=WINDOW_WIDTH - 2 * PAD)
         self.status.pack(fill="x", padx=PAD, pady=(8, 14))
 
-    def _build_advanced(self, parent: ttk.Frame) -> None:
+    def _build_options(self, parent: ttk.Frame) -> None:
+        ttk.Label(parent, text="BỘ LỌC & KHỬ VỌNG",
+                  style="Section.TLabel").pack(anchor="w")
         model = ttk.Frame(parent)
-        model.pack(fill="x", pady=(8, 0))
+        model.pack(fill="x", pady=(4, 0))
         model.columnconfigure(1, weight=1)
         ttk.Label(model, text="Bộ lọc", style="Muted.TLabel", width=6,
                   anchor="w").grid(row=0, column=0, sticky="w")
@@ -325,20 +324,32 @@ class App:
             self.denoiser_box.current(0)
         self.denoiser_box.bind("<<ComboboxSelected>>", self.on_denoiser_change)
 
+        self.aec_var = tk.BooleanVar(value=bool(self.config.get("aec", True)))
+        self.aec_check = ui.RoundCheck(
+            model, text="Khử vọng loa (AEC)", variable=self.aec_var,
+            bg=BG, command=self.on_aec_toggle)
+        self.aec_check.grid(
+            row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        ttk.Label(
+            model,
+            text="Giảm tiếng vọng khi dùng loa ngoài; đeo tai nghe vẫn tốt hơn.",
+            style="Hint.TLabel").grid(
+                row=2, column=0, columnspan=2, sticky="w", pady=(2, 0))
+
         mute = ttk.Frame(parent)
         mute.pack(fill="x", pady=(14, 0))
         mute_head = ttk.Frame(mute)
         mute_head.pack(fill="x")
         ttk.Label(mute_head, text="TẮT TIẾNG NHANH",
                   style="Section.TLabel").pack(side="left")
-        toggle = bool(self.config.get("mute_toggle", False))
+        toggle = bool(self.config.get("mute_toggle", True))
         self.mute_toggle_var = tk.BooleanVar(value=toggle)
-        ui.RoundCheck(mute_head, text="Bấm 1 lần để bật/tắt",
+        ui.RoundCheck(mute_head, text="Bấm để bật tắt",
                       variable=self.mute_toggle_var, bg=BG,
                       command=self.on_mute_toggle_change).pack(side="right")
         self.hotkey_label = ttk.Label(
             mute,
-            text="Ctrl+Shift+? (bấm để bật/tắt)" if toggle else hotkey.LABEL,
+            text="Ctrl+Shift+? (bấm để bật tắt)" if toggle else hotkey.LABEL,
             style="Muted.TLabel")
         self.hotkey_label.pack(anchor="w", pady=(4, 0))
         self.mute_hold_btn = ui.RoundButton(
@@ -426,16 +437,6 @@ class App:
         _, _, _, area_h = self._work_area()
         height = min(height, area_h - 16)
         self.root.geometry(f"{WINDOW_WIDTH}x{height}")
-
-    def _toggle_advanced(self) -> None:
-        self._advanced_open = not self._advanced_open
-        if self._advanced_open:
-            self.advanced.pack(fill="x", padx=PAD, before=self.footer_sep)
-            self.advanced_btn.set_text("Cài đặt nâng cao   ▲")
-        else:
-            self.advanced.pack_forget()
-            self.advanced_btn.set_text("Cài đặt nâng cao   ▼")
-        self._fit_window()
 
     def _icon_image(self, state: str = "stopped") -> Image.Image:
         path = config.resource_path("assets", "icon.ico")
@@ -605,6 +606,46 @@ class App:
         self._update_power_ui()
         self._refresh_tray_menu()
 
+    def on_aec_toggle(self) -> None:
+        enabled = bool(self.aec_var.get())
+        self.config["aec"] = enabled
+        config.save(self.config)
+        engine = self.engine
+        if engine is None or not engine.running or self._aec_busy:
+            self._update_power_ui()
+            self._refresh_tray_menu()
+            return
+        self._aec_busy = True
+        self.aec_check.set_enabled(False)
+        self._set_notice("Đang bật khử vọng..." if enabled
+                         else "Đang tắt khử vọng...")
+
+        def work() -> None:
+            engine.set_aec(enabled)
+            try:
+                self.root.after(0, lambda: self._aec_toggle_done(engine, enabled))
+            except tk.TclError:
+                pass
+
+        threading.Thread(target=work, name="noisecut-aec-toggle",
+                         daemon=True).start()
+
+    def _aec_toggle_done(self, engine, enabled: bool) -> None:
+        self._aec_busy = False
+        try:
+            self.aec_check.set_enabled(True)
+        except tk.TclError:
+            return
+        if self.engine is not engine:
+            return
+        if engine.aec_error:
+            self._set_notice(engine.aec_error, tone="warn")
+        else:
+            self._set_notice("Đã bật khử vọng." if enabled
+                             else "Đã tắt khử vọng.")
+        self._update_power_ui()
+        self._refresh_tray_menu()
+
     def on_autorun_toggle(self) -> None:
         wanted = self.autorun_var.get()
         if config.set_autorun(wanted):
@@ -623,7 +664,7 @@ class App:
     # ---- instant mute (cough button) ----
 
     def _setup_hotkey(self) -> None:
-        toggle = bool(self.config.get("mute_toggle", False))
+        toggle = bool(self.config.get("mute_toggle", True))
         self.mute_toggle_var.set(toggle)
         self._hotkey.configure(toggle)
         self._hotkey.sync(self._muted)
@@ -637,7 +678,7 @@ class App:
         self.config["mute_toggle"] = toggle
         config.save(self.config)
         self.hotkey_label.configure(
-            text="Ctrl+Shift+? (bấm để bật/tắt)" if toggle else hotkey.LABEL)
+            text="Ctrl+Shift+? (bấm để bật tắt)" if toggle else hotkey.LABEL)
         self._hotkey.configure(toggle)
         self._hotkey.sync(self._muted)
         if not self._hotkey.start():
@@ -872,7 +913,8 @@ class App:
 
         self.engine = eng.AudioEngine(
             in_dev, out_dev, self.mix_var.get() / 100.0,
-            denoiser=self._selected_denoiser())
+            denoiser=self._selected_denoiser(),
+            aec=bool(self.aec_var.get()))
         self.engine.muted = self._muted
         try:
             self.engine.start()
@@ -889,6 +931,8 @@ class App:
         self._update_power_ui()
         if self.engine.denoiser_error:
             self._set_notice(self.engine.denoiser_error, tone="warn")
+        elif self.engine.aec_error:
+            self._set_notice(self.engine.aec_error, tone="warn")
         else:
             self._set_notice("")
         self._refresh_status()
@@ -925,7 +969,10 @@ class App:
             title = "ĐANG KHỬ ỒN"
             title_fg = FG
             model = "DFN3" if self.engine.denoiser_name == "dfn3" else "RNNoise"
-            sub = f"{model}  ·  Mức {self.mix_var.get():.0f}%"
+            parts = [model, f"Mức {self.mix_var.get():.0f}%"]
+            if self.engine.aec_active:
+                parts.append("AEC")
+            sub = "  ·  ".join(parts)
         else:
             dot = MUTED
             title = "KHỬ ỒN ĐANG TẮT"
@@ -945,6 +992,8 @@ class App:
             state, _ = self._tray_state()
             if state != self._tray_state_cur:
                 self._refresh_tray_menu()
+        if self._ui_ready:
+            self.root.after_idle(self._fit_window)
 
     def _maybe_autostart(self) -> None:
         if self._closed or not self.config.get("auto_start", True):
@@ -961,6 +1010,7 @@ class App:
         self.config["output"] = self.output_box.get()
         self.config["mix"] = float(self.mix_var.get())
         self.config["denoiser"] = self._selected_denoiser()
+        self.config["aec"] = bool(self.aec_var.get())
         self.config["mute_toggle"] = bool(self.mute_toggle_var.get())
         self.config["mini_visible"] = self._mini_visible
         if self._mini is not None and self._mini.winfo_ismapped():
@@ -1005,6 +1055,8 @@ class App:
         if self.engine is not None and self.engine.running:
             if self.engine.error:
                 self._set_notice(f"Lỗi: {self.engine.error}", tone="error")
+            elif self.engine.aec_error:
+                self._set_notice(self.engine.aec_error, tone="warn")
         if self._tray is not None:
             state, _ = self._tray_state()
             if state != self._tray_state_cur:

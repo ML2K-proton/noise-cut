@@ -15,6 +15,7 @@ the MIT License.
 | pystray | LGPL-3.0 | https://github.com/moses-palmer/pystray |
 | Pillow | MIT-CMU | https://python-pillow.org/ |
 | pynput | LGPL-3.0 | https://github.com/moses-palmer/pynput |
+| PyAudioWPatch (PortAudio) | Apache-2.0 (PortAudio: MIT) | https://github.com/s0d3s/PyAudioWPatch |
 | deepfilternet-rs | MIT | https://github.com/di-osc/DeepFilterNet-rs |
 | DeepFilterNet3 model | MIT OR Apache-2.0 (MIT selected) | https://github.com/Rikorose/DeepFilterNet |
 
@@ -32,6 +33,16 @@ and contributors, licensed under the BSD-3-Clause license. The full license
 text is included in `noisecut/RNNOISE_LICENSE.txt`.
 
 Source: https://gitlab.xiph.org/xiph/rnnoise
+
+### SpeexDSP
+
+`noisecut/libspeexdsp-1.dll` is the SpeexDSP echo canceller and preprocessor,
+Copyright (c) Xiph.Org Foundation and contributors, licensed under the
+BSD-3-Clause license. The full license text is included in
+`noisecut/SPEEXDSP_LICENSE.txt`.
+
+Source: https://github.com/xiph/speexdsp
+Binary: MSYS2 mingw-w64 package `mingw-w64-x86_64-speexdsp` (SpeexDSP 1.2.1)
 
 ### DeepFilterNet3 model
 

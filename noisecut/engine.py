@@ -8,8 +8,10 @@ import sounddevice as sd
 from soxr import ResampleStream
 
 from . import dfn3
+from .aec import EchoCanceller
 from .denoiser import Denoiser
 from .dfn3 import DFN3Denoiser
+from .loopback import LoopbackCapture, LoopbackError
 from .rnnoise import FRAME_SIZE, SAMPLE_RATE
 
 BLOCK = FRAME_SIZE
@@ -164,12 +166,19 @@ class AudioEngine:
     """Mic -> selected denoiser -> cable (or any output device)."""
 
     def __init__(self, input_device: int, output_device: int, mix: float = 1.0,
-                 denoiser: str = "rnnoise"):
+                 denoiser: str = "rnnoise", aec: bool = False):
         self.input_device = input_device
         self.output_device = output_device
         self.denoiser_name = "rnnoise"
         self.denoiser_error: str | None = None
         self.denoiser: Denoiser | None = None
+        self.aec_enabled = bool(aec)
+        self.aec_active = False
+        self.aec_error: str | None = None
+        self.aec_device = ""
+        self._aec: EchoCanceller | None = None
+        self._loopback: LoopbackCapture | None = None
+        self._aec_lock = threading.Lock()
         self._dfn3_mix = float(np.clip(mix, 0.0, 1.0))
         self._dfn3_thread: threading.Thread | None = None
         self._dfn3_queue: queue.Queue | None = None
@@ -298,6 +307,95 @@ class AudioEngine:
         except Exception:
             return default_rate
 
+    def set_aec(self, enabled: bool) -> None:
+        enabled = bool(enabled)
+        self.aec_enabled = enabled
+        if not enabled:
+            self._cleanup_aec()
+            self.aec_error = None
+            return
+        if not self._running:
+            return
+        if self._aec is not None and self._loopback is not None:
+            self.aec_active = True
+            self.aec_error = None
+            return
+        self._start_aec()
+        if not self._running or not self.aec_enabled:
+            self._cleanup_aec()
+            return
+        if self._loopback is not None:
+            self._loopback.clear()
+
+    def _start_aec(self) -> None:
+        if not self.aec_enabled:
+            self.aec_active = False
+            self.aec_error = None
+            self.aec_device = ""
+            return
+        loop = None
+        try:
+            loop = LoopbackCapture(BLOCK, SAMPLE_RATE)
+            loop.start()
+            source = (loop.source_name or "").replace("[Loopback]", "").strip()
+            try:
+                out_name = str(sd.query_devices(self.output_device)["name"]).strip()
+            except Exception:
+                out_name = ""
+            if out_name and source and source.lower() == out_name.lower():
+                raise LoopbackError(
+                    "đầu ra của app trùng thiết bị phát mặc định")
+            aec = EchoCanceller()
+            with self._aec_lock:
+                self._aec = aec
+                self._loopback = loop
+            self.aec_active = True
+            self.aec_device = loop.source_name
+            self.aec_error = None
+        except Exception as exc:
+            if loop is not None:
+                loop.stop()
+            self._aec = None
+            self._loopback = None
+            self.aec_active = False
+            self.aec_error = f"Không bật khử vọng: {exc}"
+
+    def _cleanup_aec(self) -> None:
+        self.aec_active = False
+        with self._aec_lock:
+            loop = self._loopback
+            self._loopback = None
+            aec = self._aec
+            self._aec = None
+        if loop is not None:
+            try:
+                loop.stop()
+            except Exception:
+                pass
+        if aec is not None:
+            try:
+                aec.close()
+            except Exception:
+                pass
+
+    def _cancel_echo(self, block: np.ndarray) -> None:
+        if not self.aec_active:
+            return
+        with self._aec_lock:
+            loop = self._loopback
+            aec = self._aec
+            if loop is None or aec is None:
+                return
+            try:
+                for i in range(0, block.size, BLOCK):
+                    chunk = block[i:i + BLOCK]
+                    if chunk.size != BLOCK:
+                        break
+                    chunk[:] = aec.cancel(chunk, loop.read(BLOCK))
+            except Exception as exc:
+                self.aec_error = f"Khử vọng: {exc}"
+                self.aec_active = False
+
     def _input_callback(self, indata, frames, time_info, status):
         try:
             mono = indata[:, 0].astype(np.float32, copy=False)
@@ -312,6 +410,8 @@ class AudioEngine:
             if n_full:
                 block = mono[:n_full]
                 self._pending = mono[n_full:].copy()
+                if self.aec_active:
+                    self._cancel_echo(block)
                 worker = self._dfn3_thread
                 if worker is not None and worker.is_alive() and self._dfn3_queue is not None:
                     if self.muted:
@@ -389,6 +489,8 @@ class AudioEngine:
         self._ring.push(np.zeros(BLOCK * TARGET_PREFILL_BLOCKS, dtype=np.float32))
         self._pending = np.zeros(0, dtype=np.float32)
 
+        self._start_aec()
+
         try:
             self._input_stream = sd.InputStream(
                 device=self.input_device,
@@ -411,6 +513,8 @@ class AudioEngine:
         except Exception:
             self.stop()
             raise
+        if self._loopback is not None:
+            self._loopback.clear()
         self._running = True
 
     def stop(self) -> None:
@@ -428,6 +532,7 @@ class AudioEngine:
         self._input_level = 0.0
         self._speech = 0.0
         self._ring.clear()
+        self._cleanup_aec()
         self._stop_dfn3_worker()
         if self.denoiser is not None:
             self.denoiser.close()

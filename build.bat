@@ -17,6 +17,8 @@ echo [1/2] Build 1 file (de chia se, khoi dong cham hon)...
     --name noise-cut ^
     --icon "assets\icon.ico" ^
     --add-data "noisecut\rnnoise.dll;noisecut" ^
+    --add-data "noisecut\libspeexdsp-1.dll;noisecut" ^
+    --add-data "noisecut\SPEEXDSP_LICENSE.txt;noisecut" ^
     --add-data "noisecut\vendor\VBCABLE_NOTICE.txt;noisecut\vendor" ^
     --add-data "assets\icon.ico;assets" ^
     --add-data "LICENSE;." ^
@@ -25,6 +27,8 @@ echo [1/2] Build 1 file (de chia se, khoi dong cham hon)...
     --hidden-import pynput.keyboard._win32 ^
     --hidden-import pynput.mouse._win32 ^
     --hidden-import pynput._util.win32 ^
+    --hidden-import pyaudiowpatch ^
+    --hidden-import _portaudiowpatch ^
     --collect-all deepfilternet_rs ^
     --distpath dist app.py
 
@@ -33,6 +37,8 @@ echo [2/2] Build 1 thu muc (khoi dong nhanh, dung hang ngay)...
     --name noise-cut ^
     --icon "assets\icon.ico" ^
     --add-data "noisecut\rnnoise.dll;noisecut" ^
+    --add-data "noisecut\libspeexdsp-1.dll;noisecut" ^
+    --add-data "noisecut\SPEEXDSP_LICENSE.txt;noisecut" ^
     --add-data "noisecut\vendor\VBCABLE_NOTICE.txt;noisecut\vendor" ^
     --add-data "assets\icon.ico;assets" ^
     --add-data "LICENSE;." ^
@@ -41,6 +47,8 @@ echo [2/2] Build 1 thu muc (khoi dong nhanh, dung hang ngay)...
     --hidden-import pynput.keyboard._win32 ^
     --hidden-import pynput.mouse._win32 ^
     --hidden-import pynput._util.win32 ^
+    --hidden-import pyaudiowpatch ^
+    --hidden-import _portaudiowpatch ^
     --collect-all deepfilternet_rs ^
     --distpath dist-folder app.py
 

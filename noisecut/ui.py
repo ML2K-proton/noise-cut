@@ -257,6 +257,7 @@ class RoundCheck(tk.Canvas):
         self._font = _font(master, font)
         self._text = text
         self._bg = bg
+        self._enabled = True
         self._hover = False
         self._box_photo = None
         width = 24 + self._font.measure(text) + 4
@@ -278,24 +279,37 @@ class RoundCheck(tk.Canvas):
         checked = bool(self._var.get())
         top = (height - 16) // 2
         fill = ACCENT if checked else PANEL
-        if self._hover:
+        if self._hover and self._enabled:
             fill = ACCENT_ACTIVE if checked else PANEL_ACTIVE
         outline = ACCENT if checked else BORDER
+        if not self._enabled:
+            fill = PANEL
+            outline = BORDER
         self._box_photo = _round_photo(
             self, 16, 16, 4, fill, outline, 1)
         self.create_image(1, top, anchor="nw", image=self._box_photo)
         if checked:
             self.create_line(4, top + 8, 7, top + 11, 12, top + 5,
-                             fill=WHITE, width=2, capstyle="round",
-                             joinstyle="round")
+                             fill=WHITE if self._enabled else MUTED,
+                             width=2, capstyle="round", joinstyle="round")
         self.create_text(24, height / 2, text=self._text, anchor="w",
-                         fill=FG if self._hover else FG, font=self._font)
+                         fill=FG if self._enabled else MUTED, font=self._font)
+
+    def set_enabled(self, enabled: bool) -> None:
+        self._enabled = bool(enabled)
+        self._hover = False
+        self.configure(cursor="hand2" if self._enabled else "arrow")
+        self._draw()
 
     def _hovering(self, value: bool) -> None:
+        if not self._enabled:
+            return
         self._hover = value
         self._draw()
 
     def _toggle(self, _event=None) -> str:
+        if not self._enabled:
+            return "break"
         self._var.set(not bool(self._var.get()))
         if self._command is not None:
             self._command()
@@ -414,10 +428,12 @@ class RoundedCard(tk.Canvas):
             radius, padding, anchor="nw", window=self.body)
         self.bind("<Configure>", self._resize)
         self.body.bind("<Configure>", self._body_changed)
+        self.after_idle(self._body_changed)
 
     def _resize(self, event) -> None:
         self.itemconfigure(
             self._body_window, width=max(1, event.width - 2 * self._radius))
+        self._body_changed()
         if event.width <= 1 or event.height <= 1:
             return
         self._photo = _round_photo(

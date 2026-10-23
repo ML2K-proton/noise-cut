@@ -1,18 +1,22 @@
-"""Bundled VB-CABLE installer: verify, extract and run elevated."""
+"""VB-CABLE installer: fetch the official package, verify, extract and run."""
 
 import ctypes
 import hashlib
 import os
 import shutil
 import tempfile
+import urllib.request
 import zipfile
 from ctypes import wintypes
 
 import sounddevice as sd
 
-from .config import resource_path
+from .config import config_dir, resource_path
 
 VENDOR_ZIP_NAME = "VBCABLE_Driver_Pack45.zip"
+VENDOR_ZIP_URL = (
+    "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip"
+)
 VENDOR_ZIP_SHA256 = "b950e39f01af1d04ea623c8f6d8eb9b6ea5c477c637295fabf20631c85116bfb"
 INSTALLER_X64 = "VBCABLE_Setup_x64.exe"
 INSTALL_ARGS = "-i -h"
@@ -45,8 +49,16 @@ class _SHELLEXECUTEINFOW(ctypes.Structure):
     ]
 
 
+def _cache_zip_path() -> str:
+    return os.path.join(config_dir(), "vendor", VENDOR_ZIP_NAME)
+
+
 def vendor_zip_path() -> str:
-    return resource_path("noisecut", "vendor", VENDOR_ZIP_NAME)
+    """Use a local copy when present, otherwise the per-user download cache."""
+    bundled = resource_path("noisecut", "vendor", VENDOR_ZIP_NAME)
+    if os.path.isfile(bundled):
+        return bundled
+    return _cache_zip_path()
 
 
 def installed() -> bool:
@@ -68,12 +80,43 @@ def _sha256(path: str) -> str:
     return digest.hexdigest()
 
 
+def _download(dest: str) -> None:
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    partial = dest + ".part"
+    request = urllib.request.Request(
+        VENDOR_ZIP_URL, headers={"User-Agent": "noise-cut"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            with open(partial, "wb") as handle:
+                shutil.copyfileobj(response, handle)
+        os.replace(partial, dest)
+    finally:
+        if os.path.exists(partial):
+            try:
+                os.remove(partial)
+            except OSError:
+                pass
+
+
 def prepare() -> str:
-    """Verify the bundled package, extract it and return the installer path."""
+    """Return the installer path, downloading VB-CABLE first when needed."""
     zip_path = vendor_zip_path()
     if not os.path.isfile(zip_path):
-        raise FileNotFoundError(f"Không tìm thấy gói VB-CABLE: {zip_path}")
+        try:
+            _download(zip_path)
+        except Exception as exc:
+            raise OSError(
+                "Không tải được gói VB-CABLE từ vb-audio.com. "
+                "Kiểm tra kết nối mạng rồi thử lại, hoặc tải thủ công tại "
+                f"{VENDOR_ZIP_URL}"
+            ) from exc
     if _sha256(zip_path) != VENDOR_ZIP_SHA256:
+        if zip_path == _cache_zip_path():
+            try:
+                os.remove(zip_path)
+            except OSError:
+                pass
         raise ValueError("Gói VB-CABLE bị hỏng hoặc không đúng phiên bản.")
 
     dest = os.path.join(tempfile.gettempdir(), "noise-cut-vbcable")

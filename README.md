@@ -6,7 +6,7 @@
 
 - Lọc ồn realtime bằng **RNNoise** (mặc định, nhẹ, có high-pass 80 Hz) hoặc **DeepFilterNet3** (tùy chọn, lọc mạnh hơn) + slider mức khử có nhãn **Nhẹ ↔ Mạnh**
 - Giao diện ưu tiên trạng thái: card **ĐANG KHỬ ỒN / KHỬ ỒN ĐANG TẮT**, nút bật/tắt lớn, đồng hồ tín hiệu **Vào/Ra** realtime; các thiết lập phụ nằm trong **Cài đặt nâng cao**
-- Mic ảo **VB-CABLE** tích hợp: bấm **"Cài mic ảo"** trong app là xong (tự tải kèm sẵn, mở UAC, không cần lên web)
+- Mic ảo **VB-CABLE** tích hợp: bấm **"Cài mic ảo"** trong app là xong (tự tải bản chính thức từ vb-audio.com và kiểm tra SHA-256, mở UAC, không cần lên web)
 - **Thanh nhỏ luôn nổi** (always-on-top): kéo được, luôn hiển thị kể cả khi cửa sổ chính ẩn xuống tray; có nút giữ để tắt tiếng và nút hướng dẫn
 - **Tắt tiếng tức thì** (khi ho/hắt xì): giữ **Ctrl+Shift+?** (phím `/`) — thả ra để nói tiếp; hoặc giữ nút **GIỮ ĐỂ TẮT TIẾNG** trong **Cài đặt nâng cao**/thanh nhỏ; có chế độ bấm 1 lần để bật/tắt
 - Tự bật lọc khi mở app, thu nhỏ xuống **khay hệ thống**, bật/tắt nhanh từ menu tray
@@ -17,7 +17,7 @@
 
 1. Chạy `dist-folder\noise-cut\noise-cut.exe` (khởi động ~1s, khuyên dùng hằng ngày; DFN3 load model thêm ~0.2s)
    hoặc `dist\noise-cut.exe` (1 file duy nhất ~59 MB, khởi động ~3–4s).
-2. Bấm **Cài mic ảo (VB-Cable)** → bấm **Yes** ở hộp thoại UAC → **khởi động lại Windows**.
+2. Bấm **Cài mic ảo (VB-Cable)** (cần mạng để tải gói chính thức, ~1.3 MB) → bấm **Yes** ở hộp thoại UAC → **khởi động lại Windows**.
 3. Mở app: tự chọn `CABLE Input` và tự bật lọc. Mở **Cài đặt nâng cao** để chọn bộ lọc nếu muốn dùng DFN3.
 4. Trong Meet/Zoom/Teams chọn micro là **CABLE Output (VB-Audio Virtual Cable)** và **tắt khử ồn có sẵn** của chúng (tránh lọc 2 lần méo tiếng).
 5. Bấm **X** để thu nhỏ xuống khay (bộ lọc vẫn chạy); thoát hẳn bằng menu chuột phải ở khay.
@@ -68,7 +68,7 @@ noisecut/
   rnnoise.dll          :: thư viện RNNoise (BSD-3, xem RNNOISE_LICENSE.txt)
   vbcable.py           :: giải nén + chạy installer VB-CABLE qua UAC (runas, -i -h)
   config.py            :: config %APPDATA%\noise-cut + tự chạy cùng Windows (registry)
-  vendor/              :: gói VB-CABLE nguyên bản + VBCABLE_NOTICE.txt
+  vendor/              :: VBCABLE_NOTICE.txt (gói cài được tải từ vb-audio.com khi bấm cài)
 assets/icon.ico        :: icon app + tray
 ```
 
@@ -90,10 +90,10 @@ venv\Scripts\python.exe -m py_compile app.py noisecut\*.py
 - PortAudio cache danh sách thiết bị theo tiến trình: sau khi cài driver nên **restart app** (khuyên reboot theo tài liệu VB-Cable).
 - Nếu mic/loa không phải 48 kHz, app tự resample bằng soxr.
 
-## Bản quyền / attribution
+## Giấy phép
 
-- **VB-CABLE** là donationware của VB-Audio — nguồn: www.vb-cable.com. Gói trong `noisecut/vendor/` là bản gốc không sửa đổi, nhúng kèm theo điều khoản tại https://vb-audio.com/Services/licensing.htm (chỉ gói CABLE gốc, không kèm A+B/C+D).
-- **RNNoise** © Xiph.Org Foundation và cộng tác viên, giấy phép BSD-3-Clause (`noisecut/RNNOISE_LICENSE.txt`).
-- **DeepFilterNet3** © DeepFilterNet contributors; **deepfilternet-rs** bindings, giấy phép MIT; model DeepFilterNet3 đóng gói trong package.
-- **pynput** © Moses Palmér, giấy phép LGPL-3.0 (dùng cho phím tắt toàn cục).
-- Code noise-cut: dùng cá nhân tự do; khi phân phối kèm VB-CABLE cho tổ chức/doanh nghiệp cần mua license theo chính sách của VB-Audio.
+- Code noise-cut: **MIT** — xem `LICENSE`.
+- Danh sách thành phần bên thứ ba, giấy phép và link source: `THIRD_PARTY_NOTICES.md`.
+- **VB-CABLE** không nằm trong repo và không thuộc giấy phép MIT; app chỉ tải gói gốc chính thức từ vb-audio.com khi người dùng bấm cài. VB-CABLE là donationware của VB-Audio (nguồn: www.vb-cable.com); dùng trong tổ chức/doanh nghiệp cần license theo chính sách của VB-Audio.
+- **RNNoise** © Xiph.Org Foundation và cộng tác viên, BSD-3-Clause (`noisecut/RNNOISE_LICENSE.txt`).
+- **DeepFilterNet3** © DeepFilterNet contributors; **deepfilternet-rs** bindings, MIT; model DeepFilterNet3 dual-license MIT/Apache-2.0.

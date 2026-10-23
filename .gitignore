@@ -9,3 +9,4 @@ bench/out/
 bench/smoke/
 bench/smoke-spectrograms/
 *.spec
+noisecut/vendor/*.zip

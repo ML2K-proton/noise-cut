@@ -17,9 +17,10 @@ echo [1/2] Build 1 file (de chia se, khoi dong cham hon)...
     --name noise-cut ^
     --icon "assets\icon.ico" ^
     --add-data "noisecut\rnnoise.dll;noisecut" ^
-    --add-data "noisecut\vendor\VBCABLE_Driver_Pack45.zip;noisecut\vendor" ^
     --add-data "noisecut\vendor\VBCABLE_NOTICE.txt;noisecut\vendor" ^
     --add-data "assets\icon.ico;assets" ^
+    --add-data "LICENSE;." ^
+    --add-data "THIRD_PARTY_NOTICES.md;." ^
     --hidden-import pystray._win32 ^
     --hidden-import pynput.keyboard._win32 ^
     --hidden-import pynput.mouse._win32 ^
@@ -32,9 +33,10 @@ echo [2/2] Build 1 thu muc (khoi dong nhanh, dung hang ngay)...
     --name noise-cut ^
     --icon "assets\icon.ico" ^
     --add-data "noisecut\rnnoise.dll;noisecut" ^
-    --add-data "noisecut\vendor\VBCABLE_Driver_Pack45.zip;noisecut\vendor" ^
     --add-data "noisecut\vendor\VBCABLE_NOTICE.txt;noisecut\vendor" ^
     --add-data "assets\icon.ico;assets" ^
+    --add-data "LICENSE;." ^
+    --add-data "THIRD_PARTY_NOTICES.md;." ^
     --hidden-import pystray._win32 ^
     --hidden-import pynput.keyboard._win32 ^
     --hidden-import pynput.mouse._win32 ^
@@ -43,6 +45,10 @@ echo [2/2] Build 1 thu muc (khoi dong nhanh, dung hang ngay)...
     --distpath dist-folder app.py
 
 echo.
+copy /y LICENSE dist\ >nul
+copy /y THIRD_PARTY_NOTICES.md dist\ >nul
+copy /y LICENSE dist-folder\noise-cut\ >nul
+copy /y THIRD_PARTY_NOTICES.md dist-folder\noise-cut\ >nul
 if exist "dist\noise-cut.exe" echo OK: dist\noise-cut.exe
 if exist "dist-folder\noise-cut\noise-cut.exe" echo OK: dist-folder\noise-cut\noise-cut.exe
 pause

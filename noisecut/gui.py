@@ -3,7 +3,7 @@
 import os
 import threading
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 from PIL import Image
 
@@ -11,6 +11,7 @@ from . import config
 from . import dfn3
 from . import engine as eng
 from . import hotkey
+from . import ui
 from . import vbcable
 from .mini import MiniBar
 from .toast import Toast
@@ -108,6 +109,8 @@ class App:
         self._ui_ready = False
         self._disp_in = 0.0
         self._disp_out = 0.0
+        self._notice_text = ""
+        self._notice_tone = "info"
 
         root.title(APP_TITLE)
         try:
@@ -115,6 +118,7 @@ class App:
         except tk.TclError:
             pass
         root.configure(bg=BG)
+        ui.apply_dark_titlebar(root)
         root.geometry(f"{WINDOW_WIDTH}x600")
         root.minsize(WINDOW_WIDTH, 480)
         root.resizable(False, False)
@@ -147,6 +151,12 @@ class App:
                         font=("Segoe UI", 9))
         style.configure("Hint.TLabel", background=BG, foreground=MUTED,
                         font=("Segoe UI", 8))
+        style.configure("Notice.TLabel", background=BG, foreground=MUTED,
+                        font=("Segoe UI", 9))
+        style.configure("Warn.TLabel", background=BG, foreground=WARN,
+                        font=("Segoe UI", 9))
+        style.configure("Error.TLabel", background=BG, foreground="#e06c6c",
+                        font=("Segoe UI", 9))
         style.configure("Section.TLabel", background=BG, foreground=MUTED,
                         font=("Segoe UI Semibold", 9))
         style.configure("Value.TLabel", background=BG, foreground=FG,
@@ -186,14 +196,14 @@ class App:
         header = ttk.Frame(self.root)
         header.pack(fill="x", padx=PAD, pady=(16, 0))
         ttk.Label(header, text=APP_TITLE, style="Title.TLabel").pack(side="left")
-        ttk.Button(header, text="Hướng dẫn", style="Link.TButton",
-                   command=self.show_help).pack(side="right")
+        ui.RoundButton(header, text="Hướng dẫn", kind="ghost", height=28,
+                       padx=10, bg=BG, command=self.show_help).pack(side="right")
 
-        self.hero = tk.Frame(self.root, bg=CARD,
-                             highlightbackground=BORDER, highlightthickness=1)
+        self.hero = ui.RoundedCard(self.root, bg=BG, fill=CARD,
+                                   outline=BORDER, radius=14, padding=14)
         self.hero.pack(fill="x", padx=PAD, pady=(12, 0))
-        hero_body = tk.Frame(self.hero, bg=CARD)
-        hero_body.pack(fill="x", padx=16, pady=14)
+        hero_body = tk.Frame(self.hero.body, bg=CARD)
+        hero_body.pack(fill="x", padx=2)
 
         state_row = tk.Frame(hero_body, bg=CARD)
         state_row.pack(fill="x")
@@ -208,8 +218,9 @@ class App:
         self.state_sub = tk.Label(hero_body, text="", bg=CARD, fg=MUTED,
                                   font=("Segoe UI", 9), anchor="w")
         self.state_sub.pack(fill="x", pady=(2, 0))
-        self.toggle_btn = ttk.Button(hero_body, text="BẬT KHỬ ỒN",
-                                     style="Secondary.TButton", command=self.toggle)
+        self.toggle_btn = ui.RoundButton(
+            hero_body, text="BẬT KHỬ ỒN", kind="secondary", height=42,
+            bg=CARD, command=self.toggle)
         self.toggle_btn.pack(fill="x", pady=(12, 0))
 
         levels = ttk.Frame(self.root)
@@ -222,8 +233,9 @@ class App:
         dev_head = ttk.Frame(devices)
         dev_head.pack(fill="x")
         ttk.Label(dev_head, text="THIẾT BỊ", style="Section.TLabel").pack(side="left")
-        ttk.Button(dev_head, text="Làm mới", style="Link.TButton",
-                   command=self.refresh_devices).pack(side="right")
+        ui.RoundButton(dev_head, text="Làm mới", kind="ghost", height=28,
+                       padx=10, bg=BG,
+                       command=self.refresh_devices).pack(side="right")
 
         form = ttk.Frame(devices)
         form.pack(fill="x", pady=(4, 0))
@@ -231,18 +243,23 @@ class App:
         ttk.Label(form, text="Micro", style="Muted.TLabel", width=6,
                   anchor="w").grid(row=0, column=0, sticky="w", pady=2)
         self.input_var = tk.StringVar()
-        self.input_box = ttk.Combobox(form, textvariable=self.input_var,
-                                      state="readonly", width=30,
-                                      values=[n for _, n in self.inputs])
+        self.input_box = ui.RoundCombo(
+            form, values=[n for _, n in self.inputs],
+            textvariable=self.input_var, placeholder="Chọn micro",
+            width=260, height=34, bg=BG)
         self.input_box.grid(row=0, column=1, sticky="we", pady=2)
         ttk.Label(form, text="Đầu ra", style="Muted.TLabel", width=6,
                   anchor="w").grid(row=1, column=0, sticky="w", pady=2)
-        self.output_box = ttk.Combobox(form, state="readonly", width=30,
-                                       values=[n for _, n in self.outputs])
+        self.output_box = ui.RoundCombo(
+            form, values=[n for _, n in self.outputs],
+            placeholder="Chọn đầu ra", width=260, height=34, bg=BG)
         self.output_box.grid(row=1, column=1, sticky="we", pady=2)
+        self.input_box.bind("<<ComboboxSelected>>", self._on_device_change)
+        self.output_box.bind("<<ComboboxSelected>>", self._on_device_change)
 
-        self.install_btn = ttk.Button(devices, text="Cài mic ảo (VB-Cable)",
-                                      command=self.on_install_cable)
+        self.install_btn = ui.RoundButton(
+            devices, text="Cài mic ảo (VB-Cable)", kind="secondary", height=38,
+            bg=BG, command=self.on_install_cable)
 
         strength = ttk.Frame(self.root)
         strength.pack(fill="x", padx=PAD, pady=(14, 0))
@@ -254,8 +271,8 @@ class App:
                                           style="Value.TLabel")
         self.mix_value_label.pack(side="right")
         self.mix_var = tk.DoubleVar(value=float(self.config.get("mix", 100.0)))
-        self.mix_scale = ttk.Scale(strength, from_=0, to=100,
-                                   variable=self.mix_var, command=self.on_mix_change)
+        self.mix_scale = ui.RoundScale(strength, self.mix_var, 0, 100,
+                                       command=self.on_mix_change, bg=BG)
         self.mix_scale.pack(fill="x", pady=(6, 0))
         mix_ends = ttk.Frame(strength)
         mix_ends.pack(fill="x")
@@ -263,12 +280,9 @@ class App:
         ttk.Label(mix_ends, text="Mạnh", style="Hint.TLabel").pack(side="right")
         self.mix_value_label.configure(text=self._mix_caption(self.mix_var.get()))
 
-        self.advanced_btn = tk.Button(
-            self.root, text="Cài đặt nâng cao   ▼", bg=BG, fg=MUTED,
-            activebackground=BG, activeforeground=FG, bd=0,
-            highlightthickness=0, relief="flat", anchor="w", padx=0, pady=4,
-            cursor="hand2", font=("Segoe UI", 9),
-            command=self._toggle_advanced,
+        self.advanced_btn = ui.RoundButton(
+            self.root, text="Cài đặt nâng cao   ▼", kind="ghost", height=30,
+            padx=10, bg=BG, anchor="w", command=self._toggle_advanced,
         )
         self.advanced_btn.pack(fill="x", padx=PAD, pady=(12, 0))
 
@@ -277,6 +291,9 @@ class App:
 
         self.footer_sep = tk.Frame(self.root, bg=BORDER, height=1)
         self.footer_sep.pack(fill="x", padx=PAD, pady=(12, 0))
+        self.notice = ttk.Label(self.root, text="", style="Notice.TLabel",
+                                anchor="w", justify="left",
+                                wraplength=WINDOW_WIDTH - 2 * PAD)
         self.status = ttk.Label(self.root, text="", style="Muted.TLabel",
                                 anchor="w", justify="left",
                                 wraplength=WINDOW_WIDTH - 2 * PAD)
@@ -291,8 +308,9 @@ class App:
         choices = [label for _, label in DENOISER_CHOICES
                    if self._dfn3_available or label.startswith("RNNoise")]
         self.denoiser_var = tk.StringVar()
-        self.denoiser_box = ttk.Combobox(model, textvariable=self.denoiser_var,
-                                         state="readonly", width=30, values=choices)
+        self.denoiser_box = ui.RoundCombo(
+            model, values=choices, textvariable=self.denoiser_var,
+            placeholder="Chọn bộ lọc", width=260, height=34, bg=BG)
         self.denoiser_box.grid(row=0, column=1, sticky="we")
         selected = str(self.config.get("denoiser", "rnnoise"))
         if selected == "dfn3" and not self._dfn3_available:
@@ -315,23 +333,24 @@ class App:
                   style="Section.TLabel").pack(side="left")
         toggle = bool(self.config.get("mute_toggle", False))
         self.mute_toggle_var = tk.BooleanVar(value=toggle)
-        ttk.Checkbutton(mute_head, text="Bấm 1 lần để bật/tắt",
-                        variable=self.mute_toggle_var,
-                        command=self.on_mute_toggle_change).pack(side="right")
+        ui.RoundCheck(mute_head, text="Bấm 1 lần để bật/tắt",
+                      variable=self.mute_toggle_var, bg=BG,
+                      command=self.on_mute_toggle_change).pack(side="right")
         self.hotkey_label = ttk.Label(
             mute,
             text="Ctrl+Shift+? (bấm để bật/tắt)" if toggle else hotkey.LABEL,
             style="Muted.TLabel")
         self.hotkey_label.pack(anchor="w", pady=(4, 0))
-        self.mute_hold_btn = ttk.Button(mute)
+        self.mute_hold_btn = ui.RoundButton(
+            mute, kind="secondary", height=42, bg=BG,
+            command=self._on_hold_key,
+            on_press=self._on_hold_press, on_release=self._on_hold_release)
         self.mute_hold_btn.pack(fill="x", pady=(6, 0))
-        self.mute_hold_btn.bind("<ButtonPress-1>", self._on_hold_press)
-        self.mute_hold_btn.bind("<ButtonRelease-1>", self._on_hold_release)
 
         self.autorun_var = tk.BooleanVar(value=config.autorun_enabled())
-        ttk.Checkbutton(parent, text="Tự chạy cùng Windows",
-                        variable=self.autorun_var,
-                        command=self.on_autorun_toggle).pack(anchor="w", pady=(12, 0))
+        ui.RoundCheck(parent, text="Tự chạy cùng Windows",
+                      variable=self.autorun_var, bg=BG,
+                      command=self.on_autorun_toggle).pack(anchor="w", pady=(12, 0))
 
     def _level_row(self, parent: ttk.Frame, label: str) -> tk.Canvas:
         row = ttk.Frame(parent)
@@ -345,35 +364,77 @@ class App:
     def _mix_caption(self, value: float) -> str:
         return f"{value:.0f}%  ·  {_mix_quality(value)}"
 
-    def _set_status(self, text: str) -> None:
+    def _device_summary(self) -> str:
+        src = self.input_box.get().strip()
+        dst = self.output_box.get().strip()
+        if src and dst:
+            return f"{src}  →  {dst}"
+        if src:
+            return src
+        if dst:
+            return f"→  {dst}"
+        return "Chưa chọn thiết bị."
+
+    def _refresh_status(self) -> None:
+        text = self._device_summary()
         if self.status.cget("text") == text:
             return
         self.status.configure(text=text)
         if self._ui_ready:
             self.root.after_idle(self._fit_window)
 
-    def _short_device(self, name: str, limit: int = 26) -> str:
-        name = name.strip()
-        if len(name) <= limit:
-            return name
-        return name[:limit - 1].rstrip() + "…"
+    def _set_notice(self, text: str, tone: str = "info") -> None:
+        text = text.strip()
+        if text == self._notice_text and tone == self._notice_tone:
+            return
+        self._notice_text = text
+        self._notice_tone = tone
+        if text:
+            style = {"warn": "Warn.TLabel", "error": "Error.TLabel"}.get(
+                tone, "Notice.TLabel")
+            self.notice.configure(text=text, style=style)
+            if not self.notice.winfo_manager():
+                self.notice.pack(fill="x", padx=PAD, pady=(8, 0),
+                                 before=self.status)
+        elif self.notice.winfo_manager():
+            self.notice.pack_forget()
+        if self._ui_ready:
+            self.root.after_idle(self._fit_window)
+
+    def _on_device_change(self, _event=None) -> None:
+        self._refresh_status()
+
+    def _work_area(self) -> tuple[int, int, int, int]:
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            rect = wintypes.RECT()
+            if ctypes.windll.user32.SystemParametersInfoW(
+                    0x0030, 0, ctypes.byref(rect), 0):
+                return (rect.left, rect.top,
+                        rect.right - rect.left, rect.bottom - rect.top)
+        except Exception:
+            pass
+        return 0, 0, self.root.winfo_screenwidth(), self.root.winfo_screenheight()
 
     def _fit_window(self) -> None:
         if not self._ui_ready:
             return
         self.root.update_idletasks()
         height = max(400, self.root.winfo_reqheight())
-        height = min(height, self.root.winfo_screenheight() - 80)
+        _, _, _, area_h = self._work_area()
+        height = min(height, area_h - 16)
         self.root.geometry(f"{WINDOW_WIDTH}x{height}")
 
     def _toggle_advanced(self) -> None:
         self._advanced_open = not self._advanced_open
         if self._advanced_open:
             self.advanced.pack(fill="x", padx=PAD, before=self.footer_sep)
-            self.advanced_btn.configure(text="Cài đặt nâng cao   ▲")
+            self.advanced_btn.set_text("Cài đặt nâng cao   ▲")
         else:
             self.advanced.pack_forget()
-            self.advanced_btn.configure(text="Cài đặt nâng cao   ▼")
+            self.advanced_btn.set_text("Cài đặt nâng cao   ▼")
         self._fit_window()
 
     def _icon_image(self, state: str = "stopped") -> Image.Image:
@@ -494,11 +555,12 @@ class App:
             self._select_by_name(self.output_box, self.outputs, stored_out)
             if "cable input" not in self.output_box.get().lower():
                 self._select_by_name(self.output_box, self.outputs, cable[1])
-            self._set_status("Sẵn sàng — đã tìm thấy VB-Cable.")
+            self._set_notice("Sẵn sàng — đã tìm thấy VB-Cable.")
         else:
             self._select_by_name(self.output_box, self.outputs, stored_out)
-            self._set_status(
-                "Chưa có VB-Cable — bấm Hướng dẫn để xem cách cài.")
+            self._set_notice(
+                "Chưa có VB-Cable — bấm Hướng dẫn để xem cách cài.",
+                tone="warn")
 
         if not self.input_box.get():
             default_in = eng.default_input()
@@ -511,8 +573,9 @@ class App:
             self.input_box.current(0)
         if not self.output_box.get() and self.outputs:
             self.output_box.current(0)
+        self._refresh_status()
 
-    def _select_by_name(self, box: ttk.Combobox, devices, name: str) -> None:
+    def _select_by_name(self, box: ui.RoundCombo, devices, name: str) -> None:
         for i, (_, dev_name) in enumerate(devices):
             if dev_name == name:
                 box.current(i)
@@ -545,12 +608,12 @@ class App:
     def on_autorun_toggle(self) -> None:
         wanted = self.autorun_var.get()
         if config.set_autorun(wanted):
-            self._set_status(
+            self._set_notice(
                 "Đã bật tự chạy cùng Windows." if wanted
                 else "Đã tắt tự chạy cùng Windows.")
         else:
             self.autorun_var.set(not wanted)
-            self._set_status("Không ghi được đăng ký tự chạy.")
+            self._set_notice("Không ghi được đăng ký tự chạy.", tone="error")
         self._refresh_tray_menu()
 
     def _toggle_autorun(self) -> None:
@@ -565,8 +628,9 @@ class App:
         self._hotkey.configure(toggle)
         self._hotkey.sync(self._muted)
         if not self._hotkey.start():
-            self._set_status(
-                "Không bật được phím tắt Ctrl+Shift+/? (thiếu pynput).")
+            self._set_notice(
+                "Không bật được phím tắt Ctrl+Shift+/? (thiếu pynput).",
+                tone="warn")
 
     def on_mute_toggle_change(self) -> None:
         toggle = bool(self.mute_toggle_var.get())
@@ -577,8 +641,9 @@ class App:
         self._hotkey.configure(toggle)
         self._hotkey.sync(self._muted)
         if not self._hotkey.start():
-            self._set_status(
-                "Không bật được phím tắt Ctrl+Shift+/? (thiếu pynput).")
+            self._set_notice(
+                "Không bật được phím tắt Ctrl+Shift+/? (thiếu pynput).",
+                tone="warn")
         if self._mini is not None:
             self._mini.set_toggle_mode(toggle)
         self._update_mute_ui()
@@ -605,7 +670,7 @@ class App:
         self._refresh_tray_menu()
 
     def _mini_help(self) -> None:
-        messagebox.showinfo("Hướng dẫn", HELP_TEXT, parent=self._mini)
+        ui.show_help(self._mini, HELP_TEXT, topmost=True)
 
     def _save_mini_position(self, x: int, y: int) -> None:
         self.config["mini_x"] = int(x)
@@ -622,7 +687,6 @@ class App:
 
     def _on_hotkey_mute(self, muted: bool) -> None:
         self.set_muted(muted)
-
     def set_muted(self, muted: bool) -> None:
         self._muted = bool(muted)
         if self._hotkey is not None:
@@ -646,16 +710,23 @@ class App:
         if not self.mute_toggle_var.get():
             self.set_muted(False)
 
+    def _on_hold_key(self) -> None:
+        # Keyboard activation (Enter/Space): single toggle in both modes,
+        # since a momentary hold is not expressible via keyboard.
+        self.set_muted(not self._muted)
+
     def _update_mute_ui(self) -> None:
         if self._muted:
             if self.mute_toggle_var.get():
-                self.mute_hold_btn.configure(text="ĐANG TẮT TIẾNG — bấm để mở")
+                self.mute_hold_btn.set_text("ĐANG TẮT TIẾNG — bấm để mở")
             else:
-                self.mute_hold_btn.configure(text="ĐANG TẮT TIẾNG — thả ra để mở")
+                self.mute_hold_btn.set_text("ĐANG TẮT TIẾNG — thả ra để mở")
+            self.mute_hold_btn.set_kind("danger")
         else:
-            self.mute_hold_btn.configure(
-                text="BẤM ĐỂ TẮT TIẾNG" if self.mute_toggle_var.get()
+            self.mute_hold_btn.set_text(
+                "BẤM ĐỂ TẮT TIẾNG" if self.mute_toggle_var.get()
                 else "GIỮ ĐỂ TẮT TIẾNG")
+            self.mute_hold_btn.set_kind("secondary")
         self._update_power_ui()
         if self._mini is not None:
             self._mini.set_muted(self._muted)
@@ -689,14 +760,14 @@ class App:
                 self.install_btn.pack_forget()
         else:
             if self._installing:
-                self.install_btn.configure(state="disabled",
-                                           text="Đang cài VB-Cable...")
+                self.install_btn.set_enabled(False)
+                self.install_btn.set_text("Đang cài VB-Cable...")
             elif self._cable_pending_reboot:
-                self.install_btn.configure(
-                    state="disabled", text="Đã cài — cần khởi động lại Windows")
+                self.install_btn.set_enabled(False)
+                self.install_btn.set_text("Đã cài — cần khởi động lại Windows")
             else:
-                self.install_btn.configure(state="normal",
-                                           text="Cài mic ảo (VB-Cable)")
+                self.install_btn.set_enabled(True)
+                self.install_btn.set_text("Cài mic ảo (VB-Cable)")
             if not self.install_btn.winfo_manager():
                 self.install_btn.pack(fill="x", pady=(8, 0))
         self._fit_window()
@@ -708,11 +779,12 @@ class App:
         if vbcable.installed():
             self._update_cable_ui()
             return
-        if not messagebox.askyesno(APP_TITLE, INSTALL_CONFIRM):
+        if not ui.ask_yes_no(self.root, APP_TITLE, INSTALL_CONFIRM):
             return
         self._installing = True
-        self.install_btn.configure(state="disabled", text="Đang cài VB-Cable...")
-        self._set_status("Đang cài VB-Cable — bấm Yes ở hộp thoại UAC.")
+        self.install_btn.set_enabled(False)
+        self.install_btn.set_text("Đang cài VB-Cable...")
+        self._set_notice("Đang cài VB-Cable — bấm Yes ở hộp thoại UAC.")
         self._refresh_tray_menu()
         threading.Thread(target=self._install_worker, daemon=True).start()
 
@@ -733,11 +805,13 @@ class App:
         if ok:
             self._cable_pending_reboot = True
         else:
-            self.install_btn.configure(state="normal", text="Cài mic ảo (VB-Cable)")
+            self.install_btn.set_enabled(True)
+            self.install_btn.set_text("Cài mic ảo (VB-Cable)")
         self.refresh_devices()
         self._show_window()
         if ok:
-            messagebox.showinfo(
+            ui.show_info(
+                self.root,
                 APP_TITLE,
                 "Đã cài VB-CABLE.\n\n"
                 "Hãy khởi động lại Windows để hoàn tất.\n"
@@ -745,10 +819,11 @@ class App:
                 "mic ảo và tự bật lọc.\n\n"
                 "VB-CABLE là donationware của VB-Audio (www.vb-cable.com).",
             )
-            self._set_status("Đã cài VB-CABLE — cần khởi động lại Windows.")
+            self._set_notice(
+                "Đã cài VB-CABLE — cần khởi động lại Windows.", tone="warn")
         else:
-            messagebox.showerror(APP_TITLE, message or "Cài đặt thất bại.")
-            self._set_status("Cài VB-Cable thất bại.")
+            ui.show_error(self.root, APP_TITLE, message or "Cài đặt thất bại.")
+            self._set_notice("Cài VB-Cable thất bại.", tone="error")
         self._update_cable_ui()
 
     def refresh_devices(self) -> None:
@@ -757,8 +832,8 @@ class App:
         self.stop()
         self.inputs = eng.list_input_devices()
         self.outputs = eng.list_output_devices()
-        self.input_box.configure(values=[n for _, n in self.inputs])
-        self.output_box.configure(values=[n for _, n in self.outputs])
+        self.input_box.set_values([n for _, n in self.inputs])
+        self.output_box.set_values([n for _, n in self.outputs])
         self.input_box.set("")
         self.output_box.set("")
         self._select_by_name(self.input_box, self.inputs, prev_in)
@@ -767,9 +842,12 @@ class App:
             self._preselect()
         if not self.input_box.get() and self.inputs:
             self.input_box.current(0)
+        if not self.output_box.get() and self.outputs:
+            self.output_box.current(0)
+        self._refresh_status()
         self._update_cable_ui()
 
-    def _selected_index(self, box: ttk.Combobox, devices) -> int | None:
+    def _selected_index(self, box: ui.RoundCombo, devices) -> int | None:
         pos = box.current()
         if pos < 0 or pos >= len(devices):
             return None
@@ -788,7 +866,8 @@ class App:
         out_dev = self._selected_index(self.output_box, self.outputs)
         if in_dev is None or out_dev is None:
             if not quiet:
-                messagebox.showwarning(APP_TITLE, "Hãy chọn micro và thiết bị đầu ra.")
+                ui.show_warning(
+                    self.root, APP_TITLE, "Hãy chọn micro và thiết bị đầu ra.")
             return False
 
         self.engine = eng.AudioEngine(
@@ -800,18 +879,19 @@ class App:
         except Exception as exc:
             self.engine = None
             if not quiet:
-                messagebox.showerror(APP_TITLE, f"Không mở được thiết bị âm thanh:\n{exc}")
-            self._set_status("Khởi động thất bại.")
+                ui.show_error(
+                    self.root, APP_TITLE,
+                    f"Không mở được thiết bị âm thanh:\n{exc}")
+            self._set_notice("Khởi động thất bại.", tone="error")
             self._update_power_ui()
             return False
 
         self._update_power_ui()
         if self.engine.denoiser_error:
-            self._set_status(self.engine.denoiser_error)
+            self._set_notice(self.engine.denoiser_error, tone="warn")
         else:
-            self._set_status(
-                f"{self._short_device(self.input_box.get())}  →  "
-                f"{self._short_device(self.output_box.get())}")
+            self._set_notice("")
+        self._refresh_status()
         if self._mini is not None:
             self._mini.set_running(True)
             self._mini.set_muted(self._muted)
@@ -829,7 +909,7 @@ class App:
         if self._mini is not None:
             self._mini.set_running(False)
         if not self._closed and had_engine:
-            self._set_status("Đã dừng khử ồn.")
+            self._set_notice("Đã dừng khử ồn.")
 
     def _update_power_ui(self) -> None:
         if not hasattr(self, "state_label"):
@@ -856,9 +936,11 @@ class App:
         self.state_label.configure(text=title, fg=title_fg)
         self.state_sub.configure(text=sub)
         if running:
-            self.toggle_btn.configure(text="TẮT KHỬ ỒN", style="Primary.TButton")
+            self.toggle_btn.set_text("TẮT KHỬ ỒN")
+            self.toggle_btn.set_kind("primary")
         else:
-            self.toggle_btn.configure(text="BẬT KHỬ ỒN", style="Secondary.TButton")
+            self.toggle_btn.set_text("BẬT KHỬ ỒN")
+            self.toggle_btn.set_kind("secondary")
         if self._tray is not None:
             state, _ = self._tray_state()
             if state != self._tray_state_cur:
@@ -922,14 +1004,14 @@ class App:
         self._update_meters()
         if self.engine is not None and self.engine.running:
             if self.engine.error:
-                self.status.configure(text=f"Lỗi: {self.engine.error}")
+                self._set_notice(f"Lỗi: {self.engine.error}", tone="error")
         if self._tray is not None:
             state, _ = self._tray_state()
             if state != self._tray_state_cur:
                 self._refresh_tray_menu()
 
     def show_help(self) -> None:
-        messagebox.showinfo("Hướng dẫn", HELP_TEXT)
+        ui.show_help(self.root, HELP_TEXT)
 
     def on_close(self) -> None:
         if self._tray is not None:
